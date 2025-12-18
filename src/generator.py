@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from typing import Any, Dict, List, Union, Optional
 from collections import defaultdict
 
@@ -74,7 +75,7 @@ def generate_class(json_data: Dict[str, Any], class_name: str, classes: Dict[str
         fields.append(f'    {key}: {typ}{default_str}')
     
     imports = ""
-    class_code = f'''@dataclass
+    class_code = f'''@dataclass(slots=True)
 class {class_name}:
 {chr(10).join(fields)}
 
@@ -92,11 +93,16 @@ class {class_name}:
 '''
     return class_code
 
-def main():
-    default_json_path = os.path.join(os.path.dirname(__file__), '..', 'default.json')
+def main(input_json_path: str = None):
+    if input_json_path is None:
+        if len(sys.argv) > 1:
+            input_json_path = sys.argv[1]
+        else:
+            input_json_path = os.path.join(os.path.dirname(__file__), '..', 'default.json')
+    
     output_path = os.path.join(os.path.dirname(__file__), 'generated_class.py')
     
-    with open(default_json_path, 'r') as f:
+    with open(input_json_path, 'r') as f:
         json_data = json.load(f)
     
     classes = {}

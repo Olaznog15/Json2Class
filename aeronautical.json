@@ -1,0 +1,35 @@
+{
+    "flightId": "IB3456",
+    "aircraftModel": "Airbus A350",
+    "status": "in_flight",
+    "telemetry": {
+        "rotationAngle": 0.5,
+        "pitch": 2.3,
+        "roll": -1.2,
+        "altitude": 32000,
+        "speed": 480
+    },
+    "gpsCoordinates": {
+        "latitude": 40.4168,
+        "longitude": -3.7038
+    },
+    "numberRoutePoints": 2,
+    "routePoints": [
+        {
+            "id": "WPT01",
+            "name": "Barajas",
+            "coordinates": {
+                "lat": 40.4983,
+                "lon": -3.5676
+            }
+        },
+        {
+            "id": "WPT02",
+            "name": "Zaragoza",
+            "coordinates": {
+                "lat": 41.6488,
+                "lon": -0.8891
+            }
+        }
+    ]
+}

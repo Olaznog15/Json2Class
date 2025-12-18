@@ -1,7 +1,7 @@
 {
-  "name": "John Doe",
+  "name": "Jane Doe",
   "age": 30,
-  "isActive": true,
+  "isActive": false,
   "address": {
     "street": "123 Main St",
     "city": "Anytown",
