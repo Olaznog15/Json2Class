@@ -1,0 +1,30 @@
+{
+  "name": "John Doe",
+  "age": 30,
+  "isActive": true,
+  "address": {
+    "street": "123 Main St",
+    "city": "Anytown",
+    "zipCode": "12345"
+  },
+  "hobbies": ["reading", "coding"],
+  "metadata": {
+    "createdAt": "2023-01-01",
+    "tags": ["user", "active"]
+  },
+  "numItems": 2,
+  "items": [
+    {
+      "id": 1,
+      "description": "First item",
+      "value": 100.5,
+      "active": true
+    },
+    {
+      "id": 2,
+      "description": "Second item",
+      "value": 200.0,
+      "active": false
+    }
+  ]
+}
