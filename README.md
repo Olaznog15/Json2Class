@@ -1,4 +1,4 @@
-# Json2Binary
+# Json2Class
 
 Este proyecto genera clases Python a partir de un archivo JSON predeterminado y permite crear nuevos JSONs usando esas clases.
 
