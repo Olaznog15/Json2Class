@@ -5,6 +5,18 @@ from typing import Any, Dict, List, Union, Optional
 from collections import defaultdict
 
 def infer_type(value: Any, class_name: str = "Root", classes: Dict[str, str] = None, class_counter: Dict[str, int] = None) -> str:
+    """
+    Infers the Python type string for a given JSON value.
+
+    Args:
+        value (Any): The value from the JSON data to infer the type for.
+        class_name (str, optional): The base name for generated classes. Defaults to "Root".
+        classes (Dict[str, str], optional): A dictionary to store generated class code. Defaults to None.
+        class_counter (Dict[str, int], optional): A counter to ensure unique class names for nested objects. Defaults to None.
+
+    Returns:
+        str: The Python type string (e.g., 'int', 'str', 'List[int]', 'MyClassSub0').
+    """
     if classes is None:
         classes = {}
     if class_counter is None:
@@ -45,6 +57,19 @@ def infer_type(value: Any, class_name: str = "Root", classes: Dict[str, str] = N
         return 'Any'
 
 def generate_class(json_data: Dict[str, Any], class_name: str, classes: Dict[str, str] = None, class_counter: Dict[str, int] = None, defaults: Dict[str, Any] = None) -> str:
+    """
+    Generates the Python code for a dataclass based on a JSON dictionary.
+
+    Args:
+        json_data (Dict[str, Any]): The JSON dictionary defining the class structure.
+        class_name (str): The name of the class to generate.
+        classes (Dict[str, str], optional): A dictionary to store generated class code. Defaults to None.
+        class_counter (Dict[str, int], optional): A counter for unique nested class names. Defaults to None.
+        defaults (Dict[str, Any], optional): Default values for fields (not currently used extensively but kept for signature). Defaults to None.
+
+    Returns:
+        str: The complete Python code string for the generated class.
+    """
     if classes is None:
         classes = {}
     if class_counter is None:
@@ -94,6 +119,13 @@ class {class_name}:
     return class_code
 
 def main(input_json_path: str = None):
+    """
+    Main function to execute the class generation process.
+
+    Args:
+        input_json_path (str, optional): Path to the input JSON file. 
+                                         If None, tries to read from command line args or defaults to '../default.json'.
+    """
     if input_json_path is None:
         if len(sys.argv) > 1:
             input_json_path = sys.argv[1]
