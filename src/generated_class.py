@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 @dataclass(slots=True)
-class DefaultClassSub0:
+class Telemetry:
     rotationAngle: float = 0.5
     pitch: float = 2.3
     roll: float = -1.2
@@ -22,7 +22,7 @@ class DefaultClassSub0:
         return result
 
 @dataclass(slots=True)
-class DefaultClassSub1:
+class GpsCoordinates:
     latitude: float = 40.4168
     longitude: float = -3.7038
 
@@ -39,7 +39,7 @@ class DefaultClassSub1:
         return result
 
 @dataclass(slots=True)
-class DefaultClassSub2Sub3:
+class Coordinates:
     lat: float = 40.4983
     lon: float = -3.5676
 
@@ -56,10 +56,10 @@ class DefaultClassSub2Sub3:
         return result
 
 @dataclass(slots=True)
-class DefaultClassSub2:
+class RoutePoint:
     id: str = 'WPT01'
     name: str = 'Barajas'
-    coordinates: DefaultClassSub2Sub3 = field(default_factory=lambda: DefaultClassSub2Sub3())
+    coordinates: Coordinates = field(default_factory=lambda: Coordinates())
 
     def to_dict(self) -> Dict[str, Any]:
         result = dict()
@@ -74,14 +74,14 @@ class DefaultClassSub2:
         return result
 
 @dataclass(slots=True)
-class DefaultClass:
+class Aeronautical:
     flightId: str = 'IB3456'
     aircraftModel: str = 'Airbus A350'
     status: str = 'in_flight'
-    telemetry: DefaultClassSub0 = field(default_factory=lambda: DefaultClassSub0())
-    gpsCoordinates: DefaultClassSub1 = field(default_factory=lambda: DefaultClassSub1())
+    telemetry: Telemetry = field(default_factory=lambda: Telemetry())
+    gpsCoordinates: GpsCoordinates = field(default_factory=lambda: GpsCoordinates())
     numberRoutePoints: int = 2
-    routePoints: List[DefaultClassSub2] = field(default_factory=lambda: [{'id': 'WPT01', 'name': 'Barajas', 'coordinates': {'lat': 40.4983, 'lon': -3.5676}}, {'id': 'WPT02', 'name': 'Zaragoza', 'coordinates': {'lat': 41.6488, 'lon': -0.8891}}])
+    routePoints: List[RoutePoint] = field(default_factory=lambda: [{'id': 'WPT01', 'name': 'Barajas', 'coordinates': {'lat': 40.4983, 'lon': -3.5676}}, {'id': 'WPT02', 'name': 'Zaragoza', 'coordinates': {'lat': 41.6488, 'lon': -0.8891}}])
 
     def to_dict(self) -> Dict[str, Any]:
         result = dict()

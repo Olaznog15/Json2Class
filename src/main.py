@@ -11,12 +11,10 @@ aeronautical_json_path = os.path.join(os.path.dirname(__file__), '..', 'aeronaut
 generator.main(aeronautical_json_path)
 
 # Now import the generated class
-# Note: The class name is still DefaultClass because generator.py hardcodes it in the generate_class call
-# We might want to change that later, but for now it's fine.
-from generated_class import DefaultClass, DefaultClassSub2
+from generated_class import Aeronautical, RoutePoint
 
 # Example usage with aeronautical data
-instance = DefaultClass()
+instance = Aeronautical()
 
 print(f"Initial Flight ID: {instance.flightId}")
 print(f"Initial Altitude: {instance.telemetry.altitude}")
@@ -26,7 +24,7 @@ instance.flightId = "IB9999"
 instance.telemetry.altitude = 39000
 instance.telemetry.rotationAngle = 15.0
 instance.numberRoutePoints = 3
-instance.routePoints.append(DefaultClassSub2())
+instance.routePoints.append(RoutePoint())
 instance.routePoints[2].id = "WPT03"
 instance.routePoints[2].name = "Torrejon"
 instance.routePoints[2].coordinates.lat = 44.4983
