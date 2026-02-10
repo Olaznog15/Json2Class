@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -59,7 +61,10 @@ class Coordinates:
 class RoutePoint:
     id: str = 'WPT01'
     name: str = 'Barajas'
-    coordinates: Coordinates = field(default_factory=lambda: Coordinates())
+    coordinates: Coordinates = field(default_factory=lambda: {'lat': 40.4983, 'lon': -3.5676})
+    def __post_init__(self) -> None:
+        if isinstance(self.coordinates, dict):
+            self.coordinates = Coordinates(**self.coordinates)
 
     def to_dict(self) -> Dict[str, Any]:
         result = dict()
@@ -78,10 +83,17 @@ class Aeronautical:
     flightId: str = 'IB3456'
     aircraftModel: str = 'Airbus A350'
     status: str = 'in_flight'
-    telemetry: Telemetry = field(default_factory=lambda: Telemetry())
-    gpsCoordinates: GpsCoordinates = field(default_factory=lambda: GpsCoordinates())
+    telemetry: Telemetry = field(default_factory=lambda: {'rotationAngle': 0.5, 'pitch': 2.3, 'roll': -1.2, 'altitude': 32000, 'speed': 480})
+    gpsCoordinates: GpsCoordinates = field(default_factory=lambda: {'latitude': 40.4168, 'longitude': -3.7038})
     numberRoutePoints: int = 2
     routePoints: List[RoutePoint] = field(default_factory=lambda: [{'id': 'WPT01', 'name': 'Barajas', 'coordinates': {'lat': 40.4983, 'lon': -3.5676}}, {'id': 'WPT02', 'name': 'Zaragoza', 'coordinates': {'lat': 41.6488, 'lon': -0.8891}}])
+    def __post_init__(self) -> None:
+        if isinstance(self.telemetry, dict):
+            self.telemetry = Telemetry(**self.telemetry)
+        if isinstance(self.gpsCoordinates, dict):
+            self.gpsCoordinates = GpsCoordinates(**self.gpsCoordinates)
+        if isinstance(self.routePoints, list) and self.routePoints and isinstance(self.routePoints[0], dict):
+            self.routePoints = [RoutePoint(**item) for item in self.routePoints]
 
     def to_dict(self) -> Dict[str, Any]:
         result = dict()

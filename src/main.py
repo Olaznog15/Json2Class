@@ -24,11 +24,10 @@ instance.flightId = "IB9999"
 instance.telemetry.altitude = 39000
 instance.telemetry.rotationAngle = 15.0
 instance.numberRoutePoints = 3
-instance.routePoints.append(RoutePoint())
-instance.routePoints[2].id = "WPT03"
-instance.routePoints[2].name = "Torrejon"
-instance.routePoints[2].coordinates.lat = 44.4983
-instance.routePoints[2].coordinates.lon = -3.5676
+instance.routePoints[0].id = "WPT03"
+instance.routePoints[0].name = "Torrejon"
+instance.routePoints[0].coordinates.lat = 44.4983
+instance.routePoints[0].coordinates.lon = -3.5676
 
 print(f"Updated Flight ID: {instance.flightId}")
 print(f"Updated Altitude: {instance.telemetry.altitude}")

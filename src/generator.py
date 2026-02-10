@@ -1,8 +1,27 @@
+"""Json2Class generator module
+
+This module inspects a JSON structure and generates equivalent Python
+dataclasses that mirror the JSON schema. The generator:
+
+- Infers Python types for JSON values (primitives, lists, nested objects).
+- Creates nested dataclasses for JSON objects and reuses types when
+    structures match (deduplication based on keys+value types).
+- Emits dataclasses with a `to_dict()` helper and a `__post_init__`
+    that converts nested dicts/lists into the corresponding dataclass
+    instances at runtime.
+
+Usage (from project root):
+
+        python src/generator.py path/to/input.json
+
+The generated file is written to `src/generated_class.py` by default.
+"""
+
 import json
 import os
 import sys
+import hashlib
 from typing import Any, Dict, List, Union, Optional
-from collections import defaultdict
 
 def to_pascal_case(text: str) -> str:
     """
@@ -53,6 +72,7 @@ def infer_type(value: Any, classes: Dict[str, str], structure_map: Dict[str, str
     Returns:
         str: The Python type string (e.g., 'int', 'List[str]', 'MyClass').
     """
+    # Primitive types
     if isinstance(value, bool):
         return 'bool'
     elif isinstance(value, int):
@@ -67,7 +87,7 @@ def infer_type(value: Any, classes: Dict[str, str], structure_map: Dict[str, str
         if not value:
             return 'List[Any]'
         
-        # Determine singular name for items
+        # Determine singular name for items (used for naming item classes)
         item_name = None
         if field_name:
             item_name = get_singular_name(field_name)
@@ -83,30 +103,41 @@ def infer_type(value: Any, classes: Dict[str, str], structure_map: Dict[str, str
             union_types = ' | '.join(sorted(types))
             return f'List[{union_types}]'
     elif isinstance(value, dict):
-        # Generate a unique nested class based on structure
-        dict_key = str(sorted(value.keys()))
-        
-        if dict_key in structure_map:
-            return structure_map[dict_key]
-        
-        # Determine new class name
+        # For object values, derive a signature based on the keys and the
+        # types of their values (not the concrete values). This lets us
+        # deduplicate classes that share the same structure but different
+        # data.
+        structure_sig = json.dumps(
+            {k: type(v).__name__ for k, v in sorted(value.items())},
+            sort_keys=True,
+        )
+        dict_hash = hashlib.md5(structure_sig.encode()).hexdigest()[:8]
+
+        # Reuse class name if this structural signature was already seen
+        if dict_hash in structure_map:
+            return structure_map[dict_hash]
+
+        # Derive a human-friendly base name from the field name if present
         base_name = "GeneratedClass"
         if field_name:
             base_name = to_pascal_case(field_name)
-            # Handle cases where field name might be camelCase already
-            if base_name[0].islower():
-                 base_name = base_name[0].upper() + base_name[1:]
-        
-        # Ensure uniqueness
+            if base_name and base_name[0].islower():
+                base_name = base_name[0].upper() + base_name[1:]
+
+        # Ensure uniqueness against already used class names
         class_name = base_name
-        if class_name in classes or class_name in name_counts:
-            name_counts[class_name] = name_counts.get(class_name, 0) + 1
-            class_name = f"{base_name}{name_counts[base_name]}"
-        
-        # Register before generating to handle recursion (though JSON is usually a tree)
-        structure_map[dict_key] = class_name
-        name_counts[class_name] = 0 # Initialize count
-        
+        counter = 0
+        original_base = base_name
+        while class_name in classes or class_name in name_counts:
+            counter += 1
+            class_name = f"{original_base}{counter}"
+
+        # Register the structural signature before generating the body to
+        # correctly handle recursive structures.
+        structure_map[dict_hash] = class_name
+        if class_name not in name_counts:
+            name_counts[class_name] = 0
+
         classes[class_name] = generate_class(value, class_name, classes, structure_map, name_counts)
         return class_name
     else:
@@ -118,6 +149,7 @@ def generate_class(json_data: Dict[str, Any], class_name: str, classes: Dict[str
 
     Iterates through the dictionary keys to define fields and their types.
     Also adds a `to_dict` method to the generated class for serialization.
+    Includes __post_init__ to convert nested dicts to class instances.
 
     Args:
         json_data (Dict[str, Any]): The JSON data defining the class structure.
@@ -130,6 +162,8 @@ def generate_class(json_data: Dict[str, Any], class_name: str, classes: Dict[str
         str: The complete Python code string for the generated class.
     """
     fields = []
+    post_init_conversions = []
+    
     for key, value in json_data.items():
         typ = infer_type(value, classes, structure_map, name_counts, field_name=key)
         default_str = ""
@@ -137,13 +171,19 @@ def generate_class(json_data: Dict[str, Any], class_name: str, classes: Dict[str
             default_str = f" = {repr(value)}"
         elif isinstance(value, list):
             if value:
+                # For lists, store raw data as default and convert in __post_init__
                 default_str = f" = field(default_factory=lambda: {repr(value)})"
+                # Extract item class name from List[ClassName]
+                if isinstance(value[0], dict):
+                    item_type = typ[5:-1] if typ.startswith('List[') else 'dict'
+                    post_init_conversions.append((key, item_type, True))  # True = is_list
             else:
                 default_str = " = field(default_factory=list)"
         elif isinstance(value, dict):
-            # For nested objects, create default instance
+            # For nested objects, store raw data as default and convert in __post_init__
             sub_class_name = infer_type(value, classes, structure_map, name_counts, field_name=key)
-            default_str = f" = field(default_factory=lambda: {sub_class_name}())"
+            default_str = f" = field(default_factory=lambda: {repr(value)})"
+            post_init_conversions.append((key, sub_class_name, False))  # False = not is_list
         elif value is None:
             default_str = " = None"
         
@@ -151,9 +191,22 @@ def generate_class(json_data: Dict[str, Any], class_name: str, classes: Dict[str
             typ = f'Optional[{typ}]'
         fields.append(f'    {key}: {typ}{default_str}')
     
+    # Build __post_init__ method if needed
+    post_init_code = ""
+    if post_init_conversions:
+        post_init_lines = ["    def __post_init__(self) -> None:"]
+        for field_name, nested_class_name, is_list in post_init_conversions:
+            if is_list:
+                post_init_lines.append(f"        if isinstance(self.{field_name}, list) and self.{field_name} and isinstance(self.{field_name}[0], dict):")
+                post_init_lines.append(f"            self.{field_name} = [{nested_class_name}(**item) for item in self.{field_name}]")
+            else:
+                post_init_lines.append(f"        if isinstance(self.{field_name}, dict):")
+                post_init_lines.append(f"            self.{field_name} = {nested_class_name}(**self.{field_name})")
+        post_init_code = "\n" + "\n".join(post_init_lines)
+    
     class_code = f'''@dataclass(slots=True)
 class {class_name}:
-{chr(10).join(fields)}
+{chr(10).join(fields)}{post_init_code}
 
     def to_dict(self) -> Dict[str, Any]:
         result = dict()
@@ -209,7 +262,7 @@ def main(input_json_path: str = None):
     main_class = generate_class(json_data, main_class_name, classes, structure_map, name_counts)
     
     # Combine all classes
-    all_code = 'from dataclasses import dataclass, field\nfrom typing import Any, Dict, List, Optional\n\n'
+    all_code = 'from __future__ import annotations\n\nfrom dataclasses import dataclass, field\nfrom typing import Any, Dict, List, Optional\n\n'
     
     # Sort classes to ensure definition order (children before parents usually not strictly required in Python if using strings, 
     # but here we are not using string forward refs in type hints for the most part, except we might need to.
